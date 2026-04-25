@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   getAllProjectSlugs,
   getProjectBySlug,
-  getProjectWithHtml,
 } from "@/lib/projects";
 import { SITE } from "@/lib/site";
 
@@ -48,8 +47,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-export default async function ProjectPage({ params }: Params) {
-  const project = await getProjectWithHtml(params.slug);
+export default function ProjectPage({ params }: Params) {
+  const project = getProjectBySlug(params.slug);
   if (!project) notFound();
 
   const jsonLd = {
@@ -132,14 +131,11 @@ export default async function ProjectPage({ params }: Params) {
                   <span>{TYPE_LABELS[project.type] ?? "Project"}</span>
                 </div>
 
-                <h1
-                  className="display text-ink mb-6"
-                  style={{ fontSize: "clamp(44px, 7vw, 88px)" }}
-                >
+                <h1 className="detail-title text-ink mb-6">
                   {project.title}
                 </h1>
 
-                <p className="text-lg md:text-xl text-ink leading-relaxed mb-8 max-w-xl">
+                <p className="mono-label text-ink mb-8 max-w-xl leading-relaxed">
                   {project.summary}
                 </p>
 
@@ -172,68 +168,32 @@ export default async function ProjectPage({ params }: Params) {
 
         {/* Meta strip */}
         <section>
-          <div className="mx-auto max-w-4xl px-6">
-            <div className="border-t border-ink/15 pt-6 grid grid-cols-3 gap-6">
+          <div className="mx-auto max-w-4xl px-6 pb-20">
+            <div className="border-t border-ink/15 pt-6 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <div className="mono-label text-mute mb-2">Shipped</div>
-                <div className="text-sm text-ink">
-                  {new Date(project.date).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                <div className="mono-label text-mute mb-3">Built with</div>
+                <div className="flex flex-wrap gap-2">
+                  {project.stack.map((item) => (
+                    <span key={item} className="meta-pill">
+                      {item}
+                    </span>
+                  ))}
                 </div>
               </div>
               <div>
-                <div className="mono-label text-mute mb-2">Type</div>
-                <div className="text-sm text-ink">
-                  {TYPE_LABELS[project.type] ?? "Project"}
+                <div className="mono-label text-mute mb-3">Tags</div>
+                <div className="flex flex-wrap gap-2">
+                  {project.tags.length > 0 ? (
+                    project.tags.map((tag) => (
+                      <span key={tag} className="meta-pill">
+                        {tag}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-mute">—</span>
+                  )}
                 </div>
               </div>
-              <div>
-                <div className="mono-label text-mute mb-2">Built with</div>
-                <div className="text-sm text-ink truncate">
-                  {project.stack.join(", ")}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Body */}
-        <section>
-          <div className="mx-auto max-w-2xl px-6 py-14 md:py-20">
-            <div
-              className="prose-case"
-              dangerouslySetInnerHTML={{ __html: project.contentHtml }}
-            />
-
-            {/* Tags */}
-            {project.tags.length > 0 && (
-              <div className="mt-10 flex flex-wrap gap-2">
-                {project.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="mono-label text-mute border border-ink/15 px-3 py-1 rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Final CTA */}
-            <div className="mt-16 flex flex-col items-center gap-4 pt-10 border-t border-ink/15">
-              <p className="mono-label text-mute">Ready?</p>
-              <a
-                href={project.actionUrl}
-                target={isExternal ? "_blank" : undefined}
-                rel={isExternal ? "noreferrer" : undefined}
-                className="btn-pill"
-              >
-                {project.actionLabel}
-                <span className="arrow">→</span>
-              </a>
             </div>
           </div>
         </section>

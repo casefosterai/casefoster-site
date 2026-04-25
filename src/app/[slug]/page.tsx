@@ -105,7 +105,7 @@ export default function ProjectPage({ params }: Params) {
             <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-start">
               {/* Logo */}
               <div className="w-full md:w-64 flex-shrink-0">
-                <div className="aspect-square w-full bg-white border border-ink flex items-center justify-center overflow-hidden p-8">
+                <div className="aspect-square w-full flex items-center justify-center overflow-hidden">
                   {project.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

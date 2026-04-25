@@ -41,7 +41,9 @@ export interface ProjectFrontmatter {
 
 /** Project as it appears AFTER derivation — actionUrl and actionLabel
  *  are always present here, filled in from type+slug if not overridden. */
-export interface Project extends Omit<ProjectFrontmatter, "actionUrl" | "actionLabel"> {
+export interface Project extends Omit<ProjectFrontmatter, "actionUrl" | "actionLabel" | "tags" | "stack"> {
+  tags: string[];
+  stack: string[];
   actionUrl: string;
   actionLabel: string;
   /** The app's live subdomain URL, if applicable (webapps only) */

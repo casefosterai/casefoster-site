@@ -17,9 +17,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Hide scrollbar but allow scrolling — page snapping handles navigation */
+/* Hide scrollbar but allow scrolling — keeps the editorial feel */
 html {
   scrollbar-width: none;
+  scroll-behavior: smooth;
 }
 html::-webkit-scrollbar {
   display: none;
@@ -88,7 +89,6 @@ a {
   transform: translateX(4px);
 }
 
-/* Inverted variant — starts dark, hover inverts to light */
 .btn-reverse-dark {
   display: inline-flex;
   align-items: center;
@@ -110,7 +110,7 @@ a {
   color: #0a0a0a;
 }
 
-/* ── LIVE dot — only animates when class is added ────────────────── */
+/* ── LIVE dot ─────────────────────────────────────────────────────── */
 
 .live-dot {
   display: inline-block;
@@ -142,62 +142,89 @@ a {
   80%, 100% { transform: scale(2.6); opacity: 0; }
 }
 
-/* ── Scroll prompt: subtle bob animation ─────────────────────────── */
+/* ── Hero (Section 1): centered, but shorter than full viewport so
+       the start of Section 2 is visible just below ─────────────────── */
 
-@keyframes bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(4px); }
-}
-.scroll-prompt {
-  animation: bob 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-/* ── Page section: takes full viewport ───────────────────────────── */
-
-.snap-section {
-  height: 100vh;
+.hero-section {
+  min-height: 75vh;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem 2rem;
+  padding: 6rem 2rem 2rem;
   position: relative;
 }
+@media (max-width: 640px) {
+  .hero-section {
+    min-height: 70vh;
+    padding: 4rem 1.5rem 1.5rem;
+  }
+}
 
-/* Page 2: min-height only, grows as needed */
+/* Section 2: grows to its content — tight top spacing brings the
+   "Recent projects" heading close to the LIVE strip above */
 .page2-section {
-  min-height: 100vh;
   width: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
 }
 
-/* ── Timeline ───────────────────────────────────────────────────── */
+/* ── Progress timeline (fixed, right edge) ───────────────────────── */
 
-.timeline-dot {
+.progress-timeline {
+  position: fixed;
+  top: 50%;
+  right: 1.5rem;
+  transform: translateY(-50%);
+  z-index: 50;
+  height: 50vh;
+  display: flex;
+  align-items: stretch;
+}
+@media (min-width: 768px) {
+  .progress-timeline {
+    right: 2.5rem;
+  }
+}
+@media (max-width: 640px) {
+  .progress-timeline {
+    right: 0.875rem;
+    height: 40vh;
+  }
+}
+
+.progress-timeline-line {
+  position: relative;
+  width: 14px;
+  height: 100%;
+  cursor: pointer;
+}
+.progress-timeline-line::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  background: rgba(10, 10, 10, 0.25);
+}
+
+.progress-timeline-dot {
+  position: absolute;
+  left: 50%;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1.5px solid #0a0a0a;
-  background: transparent;
-  cursor: pointer;
-  transition: background 250ms ease, transform 250ms ease;
-}
-.timeline-dot.is-active {
   background: #0a0a0a;
-}
-.timeline-dot:hover {
-  transform: scale(1.3);
-}
-.timeline-line {
-  width: 1px;
-  background: #0a0a0a;
-  opacity: 0.25;
+  transform: translate(-50%, -50%);
+  transition: top 80ms linear;
+  pointer-events: none;
 }
 
-/* ── Prose for project pages (kept for /projects/[slug]) ─────────── */
+/* ── Prose for project pages ─────────────────────────────────────── */
 
 .prose-case {
   font-family: var(--font-sans);
@@ -229,7 +256,6 @@ a {
   position: relative;
   width: 100%;
   overflow: hidden;
-  /* Soft fade at both edges via a CSS mask */
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0%,
@@ -264,7 +290,6 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Outline-only gridline borders, like the reference */
   border-right: 1px solid #0a0a0a;
   border-top: 1px solid #0a0a0a;
   border-bottom: 1px solid #0a0a0a;
@@ -274,19 +299,17 @@ a {
 .marquee-row:first-child .marquee-tile:first-child {
   border-left: 1px solid #0a0a0a;
 }
-/* Tiles after the first copy of the first row don't need a left border to avoid double lines */
 
 .marquee-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  /* Crush color logos to high-contrast B&W until real B&W versions exist */
   filter: grayscale(1) contrast(1.6) brightness(0.92);
   user-select: none;
   pointer-events: none;
 }
 
-/* ── Pulse bars (page 2 decoration) ───────────────────────────────── */
+/* ── Pulse bars (kept for reuse) ─────────────────────────────────── */
 
 .pulse-bars {
   display: flex;
@@ -300,8 +323,6 @@ a {
   height: 4px;
   background: #0a0a0a;
   opacity: 0.15;
-  /* Each bar starts faded; animation brings it to full opacity in turn.
-     Total animation cycle is 5s: ~2s of activity, 3s of rest. */
   animation: pulseBar 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
@@ -320,7 +341,7 @@ a {
   100% { opacity: 0.15; }
 }
 
-/* ── Refined pill button (page 2) ─────────────────────────────────── */
+/* ── Refined pill button ─────────────────────────────────────────── */
 
 .btn-pill {
   display: inline-flex;
@@ -350,7 +371,7 @@ a {
   transform: translateX(4px);
 }
 
-/* ── Refined email form (page 3) ──────────────────────────────────── */
+/* ── Refined email form ──────────────────────────────────────────── */
 
 .form-pill {
   display: flex;
@@ -407,37 +428,7 @@ a {
   cursor: not-allowed;
 }
 
-/* ── Arrow nav prompts (top + bottom of sections) ────────────────── */
-
-.arrow-prompt {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  padding: 0;
-}
-.arrow-prompt:hover .arrow-prompt-label {
-  color: #0a0a0a;
-}
-.arrow-prompt-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #8A8A8A;
-  transition: color 200ms ease;
-}
-.arrow-prompt-icon {
-  color: #0a0a0a;
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-/* ── Big box button (page 2) ─────────────────────────────────────── */
+/* ── Big box button (kept for other pages if used) ───────────────── */
 
 .box-button {
   display: flex;
@@ -446,9 +437,7 @@ a {
   border: 2px solid #0a0a0a;
   background: #ffffff;
   color: #0a0a0a;
-  /* Box width — roughly 2-3x the form width on page 3 */
   width: clamp(320px, 45vw, 640px);
-  /* Aspect ratio tuned so text sits comfortably inside */
   aspect-ratio: 3.4 / 1;
   cursor: pointer;
   transition: background 200ms ease, color 200ms ease;
@@ -464,10 +453,6 @@ a {
 .box-button-line {
   font-family: var(--font-display);
   font-weight: 400;
-  /* Sized to fill the box width.
-     "ALL PROJECTS" = 12 chars including space.
-     Anton avg char width ≈ 0.42em, so font-size ≈ box_width / (0.42 * 12) ≈ box_width / 5.
-     Box is ~45vw, so ~9vw font-size. */
   font-size: clamp(38px, 9vw, 130px);
   line-height: 0.82;
   letter-spacing: -0.02em;
@@ -478,7 +463,7 @@ a {
   white-space: nowrap;
 }
 
-/* ── Project list (page 2) ───────────────────────────────────────── */
+/* ── Project list ────────────────────────────────────────────────── */
 
 .project-list {
   list-style: none;
@@ -541,20 +526,17 @@ a {
   color: #0a0a0a;
 }
 
-/* CTA row at the bottom of the list — matches structure but signals action */
 .project-row-cta .project-row-day {
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: 22px;
 }
 .project-row-cta:hover .project-row-day {
-  /* Slight nudge on the arrow to reinforce "go" */
   transform: translateX(4px);
   display: inline-block;
   transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Mobile: tighter still */
 @media (max-width: 640px) {
   .project-row {
     grid-template-columns: 50px 1fr;

@@ -11,193 +11,24 @@ type Props = {
   projects: Project[];
 };
 
-const SECTION_COUNT = 2;
 const INITIAL_VISIBLE = 5;
 const LOAD_INCREMENT = 5;
 
 export default function HomeExperience({ day, total, projects }: Props) {
-  const [activeSection, setActiveSection] = useState(0);
-  const isAnimating = useRef(false);
-  const lastWheelTime = useRef(0);
-
-  /** Snap the viewport to a specific section (0 or 1). */
-  const goTo = (index: number) => {
-    const clamped = Math.max(0, Math.min(SECTION_COUNT - 1, index));
-    isAnimating.current = true;
-    setActiveSection(clamped);
-
-    const target = index === 0 ? 0 : window.innerHeight;
-    window.scrollTo({ top: target, behavior: "smooth" });
-
-    window.setTimeout(() => {
-      isAnimating.current = false;
-    }, 800);
-  };
-
-  /** Track which section is active based on scroll position. */
-  useEffect(() => {
-    const onScroll = () => {
-      if (isAnimating.current) return;
-      // If we're scrolled more than half a viewport, we're in section 2
-      const scrollY = window.scrollY;
-      const newSection = scrollY > window.innerHeight * 0.5 ? 1 : 0;
-      setActiveSection((prev) => (prev === newSection ? prev : newSection));
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  /** Wheel: snap only at the boundary between section 1 and section 2.
-   *  Within section 2, scroll freely. */
-  useEffect(() => {
-    const onWheel = (e: WheelEvent) => {
-      if (isAnimating.current) return;
-
-      const scrollY = window.scrollY;
-      const vh = window.innerHeight;
-
-      // Case A: at the very top, scrolling down → snap to section 2
-      if (scrollY < 10 && e.deltaY > 0) {
-        const now = performance.now();
-        if (now - lastWheelTime.current < 600) return;
-        if (Math.abs(e.deltaY) < 5) return;
-        lastWheelTime.current = now;
-        e.preventDefault();
-        goTo(1);
-        return;
-      }
-
-      // Case B: exactly at the top of section 2, scrolling up → snap to section 1
-      // "exactly at the top of section 2" means scrollY is right around vh (within ~5px)
-      if (Math.abs(scrollY - vh) < 10 && e.deltaY < 0) {
-        const now = performance.now();
-        if (now - lastWheelTime.current < 600) return;
-        if (Math.abs(e.deltaY) < 5) return;
-        lastWheelTime.current = now;
-        e.preventDefault();
-        goTo(0);
-        return;
-      }
-
-      // Otherwise (inside section 2, or scrolling mid-section), scroll freely.
-    };
-
-    window.addEventListener("wheel", onWheel, { passive: false });
-    return () => window.removeEventListener("wheel", onWheel);
-  }, []);
-
-  /** Keyboard navigation */
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (isAnimating.current) return;
-      const scrollY = window.scrollY;
-      const vh = window.innerHeight;
-
-      if ((e.key === "ArrowDown" || e.key === "PageDown") && scrollY < 10) {
-        e.preventDefault();
-        goTo(1);
-      } else if (
-        (e.key === "ArrowUp" || e.key === "PageUp") &&
-        Math.abs(scrollY - vh) < 10
-      ) {
-        e.preventDefault();
-        goTo(0);
-      }
-      // Otherwise let the browser handle keyboard scroll naturally
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  /** Touch swipe support — only at section boundaries */
-  useEffect(() => {
-    let startY = 0;
-    const onTouchStart = (e: TouchEvent) => {
-      startY = e.touches[0].clientY;
-    };
-    const onTouchEnd = (e: TouchEvent) => {
-      if (isAnimating.current) return;
-      const endY = e.changedTouches[0].clientY;
-      const delta = startY - endY;
-      if (Math.abs(delta) < 50) return;
-
-      const scrollY = window.scrollY;
-      const vh = window.innerHeight;
-
-      if (scrollY < 10 && delta > 0) {
-        goTo(1);
-      } else if (Math.abs(scrollY - vh) < 10 && delta < 0) {
-        goTo(0);
-      }
-    };
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
-    return () => {
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchend", onTouchEnd);
-    };
-  }, []);
-
   return (
     <div className="relative">
-      <Section1
-        day={day}
-        total={total}
-        active={activeSection === 0}
-        onScrollDown={() => goTo(1)}
-      />
-      <Section2 projects={projects} onScrollUp={() => goTo(0)} />
-      <Timeline active={activeSection} onSelect={goTo} />
+      <Section1 day={day} total={total} />
+      <Section2 projects={projects} />
+      <ProgressTimeline />
     </div>
   );
 }
 
-/* ──────────────────────────────────────────────────────────────────── */
+/* -------------------------------------------------------------------- */
 
-function ArrowPrompt({
-  direction,
-  onClick,
-  position,
-}: {
-  direction: "up" | "down";
-  onClick: () => void;
-  position: "top" | "bottom";
-}) {
-  const positionClasses =
-    position === "top"
-      ? "absolute top-10 left-1/2 -translate-x-1/2"
-      : "absolute bottom-10 left-1/2 -translate-x-1/2";
-
-  const arrow = direction === "up" ? "↑" : "↓";
-
+function Section1({ day, total }: { day: number; total: number }) {
   return (
-    <button
-      onClick={onClick}
-      className={`${positionClasses} arrow-prompt group`}
-      aria-label={`Scroll ${direction}`}
-    >
-      {direction === "up" && <span className="arrow-prompt-icon scroll-prompt">{arrow}</span>}
-      <span className="arrow-prompt-label">Scroll</span>
-      {direction === "down" && <span className="arrow-prompt-icon scroll-prompt">{arrow}</span>}
-    </button>
-  );
-}
-
-/* ──────────────────────────────────────────────────────────────────── */
-
-function Section1({
-  day,
-  total,
-  active,
-  onScrollDown,
-}: {
-  day: number;
-  total: number;
-  active: boolean;
-  onScrollDown: () => void;
-}) {
-  return (
-    <section className="snap-section">
+    <section className="hero-section">
       <div className="w-full max-w-6xl flex flex-col items-center">
         <h1
           className="display text-ink text-center"
@@ -210,7 +41,7 @@ function Section1({
 
         <div className="flex items-center gap-6 md:gap-10 flex-wrap justify-center mono-label text-ink">
           <span className="flex items-center gap-2.5">
-            <span className={`live-dot ${active ? "is-active" : ""}`} aria-hidden />
+            <span className="live-dot is-active" aria-hidden />
             <span>Live</span>
           </span>
           <span className="text-mute">/</span>
@@ -226,34 +57,22 @@ function Section1({
           </span>
         </div>
       </div>
-
-      <ArrowPrompt direction="down" position="bottom" onClick={onScrollDown} />
     </section>
   );
 }
 
-/* ──────────────────────────────────────────────────────────────────── */
+/* -------------------------------------------------------------------- */
 
-const Section2 = ({
-  projects,
-  onScrollUp,
-}: {
-  projects: Project[];
-  onScrollUp: () => void;
-}) => {
+function Section2({ projects }: { projects: Project[] }) {
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const visible = projects.slice(0, visibleCount);
   const hasMore = projects.length > visibleCount;
 
   return (
     <section className="page2-section">
-      <ArrowPrompt direction="up" position="top" onClick={onScrollUp} />
-
-      <div className="w-full max-w-3xl mx-auto px-6 pt-28 md:pt-32 pb-10">
-        {/* Heading */}
+      <div className="w-full max-w-3xl mx-auto px-6 pt-10 md:pt-14 pb-10">
         <h2 className="project-list-heading text-center">Recent projects</h2>
 
-        {/* List */}
         {projects.length === 0 ? (
           <p className="mono-label text-mute text-center py-12">
             No projects yet. Check back soon.
@@ -292,7 +111,6 @@ const Section2 = ({
         )}
       </div>
 
-      {/* Email signup */}
       <div className="w-full max-w-xl mx-auto px-6 py-16 md:py-24">
         <p className="mono-label text-mute mb-6 text-center">
           Get notified when a new project drops
@@ -300,7 +118,6 @@ const Section2 = ({
         <SignupForm />
       </div>
 
-      {/* Footer */}
       <footer className="w-full border-t border-ink/15 mt-auto">
         <div className="max-w-4xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 mono-label">
           <div className="flex items-center gap-6 md:gap-10 flex-wrap justify-center">
@@ -340,14 +157,16 @@ const Section2 = ({
               Twitter
             </a>
           </div>
-          <div className="text-mute">© {new Date().getFullYear()} Case Foster</div>
+          <div className="text-mute">
+            © {new Date().getFullYear()} Case Foster
+          </div>
         </div>
       </footer>
     </section>
   );
-};
+}
 
-/* ──────────────────────────────────────────────────────────────────── */
+/* -------------------------------------------------------------------- */
 
 function SignupForm() {
   const [email, setEmail] = useState("");
@@ -364,7 +183,9 @@ function SignupForm() {
 
   if (status === "done") {
     return (
-      <p className="mono-label text-ink text-center">You&apos;re on the list. ←</p>
+      <p className="mono-label text-ink text-center">
+        You&apos;re on the list. ←
+      </p>
     );
   }
 
@@ -384,27 +205,65 @@ function SignupForm() {
   );
 }
 
-/* ──────────────────────────────────────────────────────────────────── */
+/* -------------------------------------------------------------------- */
 
-function Timeline({
-  active,
-  onSelect,
-}: {
-  active: number;
-  onSelect: (i: number) => void;
-}) {
+/**
+ * ProgressTimeline — fixed to the right edge of the viewport.
+ * Continuous vertical line ~50vh tall with a dot that slides down it
+ * proportional to scroll progress (0 at top, 100% at bottom). Clicking
+ * anywhere on the line jumps to that proportional point in the page.
+ */
+function ProgressTimeline() {
+  const [progress, setProgress] = useState(0);
+  const lineRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const compute = () => {
+      const doc = document.documentElement;
+      const scrollable = doc.scrollHeight - window.innerHeight;
+      if (scrollable <= 0) {
+        setProgress(0);
+        return;
+      }
+      const ratio = window.scrollY / scrollable;
+      setProgress(Math.max(0, Math.min(1, ratio)));
+    };
+    compute();
+    window.addEventListener("scroll", compute, { passive: true });
+    window.addEventListener("resize", compute);
+    return () => {
+      window.removeEventListener("scroll", compute);
+      window.removeEventListener("resize", compute);
+    };
+  }, []);
+
+  const onLineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const line = lineRef.current;
+    if (!line) return;
+    const rect = line.getBoundingClientRect();
+    const ratio = (e.clientY - rect.top) / rect.height;
+    const clamped = Math.max(0, Math.min(1, ratio));
+    const doc = document.documentElement;
+    const scrollable = doc.scrollHeight - window.innerHeight;
+    window.scrollTo({ top: scrollable * clamped, behavior: "smooth" });
+  };
+
   return (
-    <div className="fixed top-1/2 right-6 md:right-10 -translate-y-1/2 z-50 flex flex-col items-center gap-3">
-      {Array.from({ length: SECTION_COUNT }).map((_, i) => (
-        <div key={i} className="flex flex-col items-center gap-3">
-          <button
-            onClick={() => onSelect(i)}
-            aria-label={`Go to section ${i + 1}`}
-            className={`timeline-dot ${active === i ? "is-active" : ""}`}
-          />
-          {i < SECTION_COUNT - 1 && <div className="timeline-line h-10" />}
-        </div>
-      ))}
+    <div
+      className="progress-timeline"
+      aria-label="Page progress"
+      role="navigation"
+    >
+      <div
+        className="progress-timeline-line"
+        ref={lineRef}
+        onClick={onLineClick}
+      >
+        <div
+          className="progress-timeline-dot"
+          style={{ top: `${progress * 100}%` }}
+        />
+      </div>
     </div>
   );
 }

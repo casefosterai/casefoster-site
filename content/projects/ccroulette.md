@@ -12,5 +12,3 @@ image: "/logos/ccroulette.png"
 Credit Card Roulette is the bar bet your group already knows the rules to, made portable. Each player picks a number on the wheel, the ball spins, and whoever lands closest to where it stops covers the tab. Ties split the bill evenly.
 
 Built mobile-first for the moment after the check arrives — fast to set up, no signup, no accounts. Works on any phone with a browser.
-
-Day 2 of casefoster.ai, a daily public build channel where Case Foster ships a new AI-built tool every day.

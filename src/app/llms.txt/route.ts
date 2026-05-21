@@ -10,8 +10,8 @@ const typeLabels: Record<string, string> = {
   other: "Project",
 };
 
-export function GET() {
-  const projects = getAllProjects();
+export async function GET() {
+  const projects = await getAllProjects();
 
   const body = `# ${SITE.name}
 

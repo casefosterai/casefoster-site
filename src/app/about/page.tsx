@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   description: `About Case Foster and the "building with AI every day" project. ${SITE.description}`,
 };
 
-export default function AboutPage() {
-  const day = getCurrentDay();
-  const total = getAllProjects().length;
+export default async function AboutPage() {
+  const day = await getCurrentDay();
+  const total = (await getAllProjects()).length;
 
   return (
     <>

@@ -2,9 +2,9 @@ import HomeExperience from "@/components/HomeExperience";
 import { getAllProjects, getCurrentDay } from "@/lib/projects";
 import { SITE } from "@/lib/site";
 
-export default function HomePage() {
-  const all = getAllProjects();
-  const day = getCurrentDay();
+export default async function HomePage() {
+  const all = await getAllProjects();
+  const day = await getCurrentDay();
 
   const jsonLd = {
     "@context": "https://schema.org",

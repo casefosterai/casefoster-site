@@ -40,7 +40,8 @@ export interface ProjectFrontmatter {
 }
 
 /** Project as it appears AFTER derivation — actionUrl and actionLabel
- *  are always present here, filled in from type+slug if not overridden. */
+ *  are always present here, filled in from type+slug if not overridden.
+ *  contentHtml is the rendered markdown body, empty string if no body. */
 export interface Project extends Omit<ProjectFrontmatter, "actionUrl" | "actionLabel" | "tags" | "stack"> {
   tags: string[];
   stack: string[];
@@ -48,17 +49,18 @@ export interface Project extends Omit<ProjectFrontmatter, "actionUrl" | "actionL
   actionLabel: string;
   /** The app's live subdomain URL, if applicable (webapps only) */
   appUrl?: string;
-}
-
-export interface ProjectWithContent extends Project {
+  /** Rendered HTML from the markdown body. Empty string if no body content. */
   contentHtml: string;
 }
+
+/** Legacy alias — kept for backwards compatibility with anything still importing it. */
+export type ProjectWithContent = Project;
 
 /* ──────────────────────────────────────────────────────────────────
    Derivation — turns frontmatter into a Project with defaults filled.
    ────────────────────────────────────────────────────────────────── */
 
-function deriveProject(fm: ProjectFrontmatter): Project {
+function deriveProject(fm: ProjectFrontmatter, contentHtml: string): Project {
   const { actionUrl: override, actionLabel: overrideLabel, ...rest } = fm;
 
   let derivedUrl: string | undefined;
@@ -92,6 +94,7 @@ function deriveProject(fm: ProjectFrontmatter): Project {
     actionUrl: override ?? derivedUrl ?? "#",
     actionLabel: overrideLabel ?? derivedLabel,
     appUrl,
+    contentHtml,
   };
 }
 
@@ -120,43 +123,46 @@ function readProjectFile(slug: string): { fm: ProjectFrontmatter; content: strin
   return { fm, content };
 }
 
-export function getProjectBySlug(slug: string): Project | null {
-  const file = readProjectFile(slug);
-  if (!file) return null;
-  return deriveProject(file.fm);
-}
-
-export async function getProjectWithHtml(slug: string): Promise<ProjectWithContent | null> {
-  const file = readProjectFile(slug);
-  if (!file) return null;
-
+/** Render the markdown body to HTML. Returns empty string if body is empty. */
+async function renderBody(content: string): Promise<string> {
+  const trimmed = content.trim();
+  if (!trimmed) return "";
   const processed = await remark()
     .use(remarkGfm)
     .use(remarkHtml, { sanitize: false })
-    .process(file.content);
-
-  return {
-    ...deriveProject(file.fm),
-    contentHtml: processed.toString(),
-  };
+    .process(trimmed);
+  return processed.toString();
 }
 
-export function getAllProjects(): Project[] {
+/** Primary loader. Async because it renders the markdown body to HTML. */
+export async function getProjectBySlug(slug: string): Promise<Project | null> {
+  const file = readProjectFile(slug);
+  if (!file) return null;
+  const contentHtml = await renderBody(file.content);
+  return deriveProject(file.fm, contentHtml);
+}
+
+/** Legacy alias — same as getProjectBySlug now. Kept for backwards compatibility. */
+export async function getProjectWithHtml(slug: string): Promise<Project | null> {
+  return getProjectBySlug(slug);
+}
+
+/** Loads all projects. Async because each project renders its body. */
+export async function getAllProjects(): Promise<Project[]> {
   const slugs = getAllProjectSlugs();
-  const projects = slugs
-    .map((slug) => getProjectBySlug(slug))
+  const projects = await Promise.all(slugs.map((slug) => getProjectBySlug(slug)));
+  return projects
     .filter((p): p is Project => p !== null)
     .sort((a, b) => b.day - a.day);
-  return projects;
 }
 
-export function getFeaturedProject(): Project | null {
-  const all = getAllProjects();
+export async function getFeaturedProject(): Promise<Project | null> {
+  const all = await getAllProjects();
   return all.find((p) => p.featured) ?? all[0] ?? null;
 }
 
-export function getCurrentDay(): number {
-  const all = getAllProjects();
+export async function getCurrentDay(): Promise<number> {
+  const all = await getAllProjects();
   if (all.length === 0) return 0;
   return Math.max(...all.map((p) => p.day));
 }

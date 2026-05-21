@@ -21,7 +21,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const project = getProjectBySlug(params.slug);
+  const project = await getProjectBySlug(params.slug);
   if (!project) return {};
 
   const url = `${SITE.url}/${project.slug}`;
@@ -47,8 +47,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-export default function ProjectPage({ params }: Params) {
-  const project = getProjectBySlug(params.slug);
+export default async function ProjectPage({ params }: Params) {
+  const project = await getProjectBySlug(params.slug);
   if (!project) notFound();
 
   const jsonLd = {
@@ -165,6 +165,18 @@ export default function ProjectPage({ params }: Params) {
             </div>
           </div>
         </section>
+
+        {/* Body content (from markdown) */}
+        {project.contentHtml && (
+          <section>
+            <div className="mx-auto max-w-4xl px-6 pb-10">
+              <div
+                className="prose-case"
+                dangerouslySetInnerHTML={{ __html: project.contentHtml }}
+              />
+            </div>
+          </section>
+        )}
 
         {/* Meta strip */}
         <section>
